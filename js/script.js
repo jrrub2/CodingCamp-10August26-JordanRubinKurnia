@@ -1,23 +1,14 @@
-/**
- * ═══════════════════════════════════════════════════════════════
- *  TEMPO — Personal Productivity Dashboard
- *  Vanilla ES6+ · zero dependencies · LocalStorage-first
- *  Modules: Storage · Toast · Theme · Clock · HUD · Timer ·
- *           Tasks · Links · Modal · Portability · Shortcuts
- * ═══════════════════════════════════════════════════════════════
- */
 'use strict';
 (() => {
 
   /* ─────────────────────────── 0. UTILITIES ─────────────────── */
 
-  const $  = (sel, root = document) => root.querySelector(sel);
+  const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const pad = n => String(n).padStart(2, '0');
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
-  /** Escape HTML for safe interpolation. */
   const esc = s => String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -29,17 +20,14 @@
 
   const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /** Inline SVG icon set (no external assets). */
   const ICON = {
     pencil: '<svg viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
-    trash:  '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    x:      '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    ext:    '<svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M9 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    ext: '<svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M9 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
 
-  /* ─────────────────────── 1. STORAGE ADAPTER ───────────────────────
-     Graceful fallback: if LocalStorage is blocked/corrupted, we keep
-     state in an in-memory Map so the app still functions per-session. */
+  /* ─────────────────────── 1. STORAGE ADAPTER ─────────────────────── */
 
   const storage = (() => {
     let ok = false;
@@ -70,7 +58,7 @@
 
   const DEFAULTS = Object.freeze({
     name: 'Friend',
-    theme: null,              // null = follow system preference
+    theme: null,
     tasks: [],
     links: [],
     focus: { sessions: 0, minutes: 0 },
@@ -79,9 +67,9 @@
   });
 
   let state = loadState();
-  let storageWarned = !storage.ok; // avoid double-toast
+  let storageWarned = !storage.ok;
 
-  /** Load + hydrate state; survive corrupted JSON. */
+  /** survive from corrupted JSON. */
   function loadState() {
     const fresh = JSON.parse(JSON.stringify(DEFAULTS));
     const raw = storage.get(KEY);
@@ -146,9 +134,8 @@
     applyTheme(next);
   }
 
-  // Initial: stored preference wins, else system preference.
   applyTheme(state.theme || (mql.matches ? 'dark' : 'light'));
-  // Track OS changes only while the user hasn't chosen manually.
+
   mql.addEventListener?.('change', e => {
     if (!state.theme) applyTheme(e.matches ? 'dark' : 'light');
   });
@@ -156,16 +143,16 @@
   /* ─────────────────────── 4. CLOCK + GREETING ─────────────────────── */
 
   const greetWord = $('#greet-word'), greetEyebrow = $('#greet-eyebrow'),
-        greetSub = $('#greet-sub'), nameBtn = $('#name-btn'),
-        nameInput = $('#name-input'),
-        clockHH = $('#clock-hh'), clockMM = $('#clock-mm'), clockSS = $('#clock-ss'),
-        clockDate = $('#clock-date'), clockTz = $('#clock-tz');
+    greetSub = $('#greet-sub'), nameBtn = $('#name-btn'),
+    nameInput = $('#name-input'),
+    clockHH = $('#clock-hh'), clockMM = $('#clock-mm'), clockSS = $('#clock-ss'),
+    clockDate = $('#clock-date'), clockTz = $('#clock-tz');
 
   const PERIODS = {
-    morning:   { word: 'Good morning',   label: 'Morning block',   sub: 'Fresh hours — plan the day’s first win.' },
+    morning: { word: 'Good morning', label: 'Morning block', sub: 'Fresh hours — plan the day’s first win.' },
     afternoon: { word: 'Good afternoon', label: 'Afternoon block', sub: 'Momentum window. Keep the streak alive.' },
-    evening:   { word: 'Good evening',   label: 'Evening block',   sub: 'Wind-down ops — close the open loops.' },
-    night:     { word: 'Late night',     label: 'Night block',     sub: 'Quiet hours. Deep work or deep rest.' }
+    evening: { word: 'Good evening', label: 'Evening block', sub: 'Wind-down ops — close the open loops.' },
+    night: { word: 'Late night', label: 'Night block', sub: 'Quiet hours. Deep work or deep rest.' }
   };
 
   function periodFor(hour) {
@@ -215,11 +202,11 @@
         ` · Week ${isoWeek(d)} · Day ${dayOfYear(d)}`;
       const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local').replace(/_/g, ' ');
       clockTz.textContent = `${tz} · ${utcOffsetLabel(d)}`;
-      renderGreeting(); // period may have rolled over
+      renderGreeting();
     }
   }
 
-  /* Name editing (inline) */
+
   function startNameEdit() {
     nameBtn.hidden = true;
     nameInput.hidden = false;
@@ -245,7 +232,7 @@
     sessions: $('#hud-sessions'), minutes: $('#hud-minutes')
   };
 
-  /** Animate a number change (tween); instant under reduced motion. */
+  /** Animate a number change. */
   function setNum(el, to, fmt = String) {
     const from = Number(el.dataset.v ?? 0);
     el.dataset.v = to;
@@ -253,7 +240,7 @@
     const t0 = performance.now(), D = 450;
     const step = t => {
       const p = Math.min(1, (t - t0) / D);
-      const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      const e = 1 - Math.pow(1 - p, 3);
       el.textContent = fmt(Math.round(from + (to - from) * e));
       if (p < 1) requestAnimationFrame(step);
     };
@@ -271,9 +258,9 @@
   /* ─────────────────────── 6. FOCUS TIMER + AUDIO ─────────────────────── */
 
   const PRESETS = [
-    { id: 'pomodoro', label: 'Pomodoro',    min: 25 },
-    { id: 'short',    label: 'Short Break', min: 5  },
-    { id: 'long',     label: 'Long Break',  min: 15 }
+    { id: 'pomodoro', label: 'Pomodoro', min: 25 },
+    { id: 'short', label: 'Short Break', min: 5 },
+    { id: 'long', label: 'Long Break', min: 15 }
   ];
   const BASE_TITLE = document.title;
 
@@ -285,11 +272,11 @@
   };
 
   const timerDisplay = $('#timer-display'), modeLabel = $('#timer-mode-label'),
-        statePill = $('#timer-state'), toggleBtn = $('#timer-toggle'),
-        ringProg = $('#ring-prog'), customMin = $('#custom-min'),
-        timerPanel = $('#timer-panel'), presetGroup = $('#preset-group');
+    statePill = $('#timer-state'), toggleBtn = $('#timer-toggle'),
+    ringProg = $('#ring-prog'), customMin = $('#custom-min'),
+    timerPanel = $('#timer-panel'), presetGroup = $('#preset-group');
 
-  /* — Web Audio chime: synthesised A-major arpeggio, zero mp3s — */
+  /* — Web Audio chime — */
   let audioCtx = null;
   function ensureAudio() {
     try {
@@ -317,7 +304,7 @@
       });
     } catch (_) { /* ignore */ }
   }
-  // Unlock audio on first user gesture (autoplay policies).
+  // Unlock audio on first user gesture.
   document.addEventListener('pointerdown', ensureAudio, { once: true, passive: true });
 
   const fmtTimer = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
@@ -356,7 +343,7 @@
     T.endAt = Date.now() + T.rem * 1000;
     T.status = 'running';
     clearInterval(T.iv);
-    T.iv = setInterval(tick, 200);   // timestamp math ⇒ drift-proof
+    T.iv = setInterval(tick, 200);
     renderTimer();
   }
 
@@ -417,10 +404,10 @@
   /* ─────────────────────────── 7. TASKS ─────────────────────────── */
 
   const taskForm = $('#task-form'), taskInput = $('#task-input'),
-        taskError = $('#task-error'), taskList = $('#task-list'),
-        tasksEmpty = $('#tasks-empty'), taskSort = $('#task-sort'),
-        taskBar = $('#task-bar'), taskBarLabel = $('#task-progress-label'),
-        taskCountBadge = $('#task-count'), filterGroup = $('#task-filter');
+    taskError = $('#task-error'), taskList = $('#task-list'),
+    tasksEmpty = $('#tasks-empty'), taskSort = $('#task-sort'),
+    taskBar = $('#task-bar'), taskBarLabel = $('#task-progress-label'),
+    taskCountBadge = $('#task-count'), filterGroup = $('#task-filter');
 
   let editingId = null;
   let editCancelled = false;
@@ -492,7 +479,7 @@
     taskError.textContent = msg;
     if (msg) {
       taskInput.classList.remove('shake');
-      void taskInput.offsetWidth; // restart animation
+      void taskInput.offsetWidth;
       taskInput.classList.add('shake');
     }
   }
@@ -638,8 +625,8 @@
   /* ─────────────────────────── 9. MODAL ─────────────────────────── */
 
   const modal = $('#link-modal'), linkForm = $('#link-form'),
-        linkName = $('#link-name'), linkUrl = $('#link-url'),
-        linkError = $('#link-error'), linkAddBtn = $('#link-add-btn');
+    linkName = $('#link-name'), linkUrl = $('#link-url'),
+    linkError = $('#link-error'), linkAddBtn = $('#link-add-btn');
   let lastFocused = null;
 
   function openModal() {
